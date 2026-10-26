@@ -1,0 +1,6 @@
+# Test profile: the datasource comes from the Testcontainers PostgreSQL container
+# (see TestcontainersConfiguration), so nothing is configured here.
+logging:
+  level:
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN

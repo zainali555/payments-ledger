@@ -17,10 +17,17 @@ Testcontainers, Docker Compose, GitHub Actions.
 ## Commands
 - Build and test: `./mvnw clean verify` (Git Bash) or `.\mvnw clean verify` (PowerShell)
 - Run tests only: `./mvnw test` (Git Bash) or `.\mvnw test` (PowerShell)
-- Start dependencies: `docker compose up -d`
+- Start dependencies (Postgres, Keycloak): `docker compose up -d`
 - Stop dependencies: `docker compose down`
+- Run the app (profile `local` is the default; needs the dependencies up): `./mvnw spring-boot:run` (Git Bash) or `.\mvnw spring-boot:run` (PowerShell)
+- Health check: `curl http://localhost:8080/actuator/health`
 
-(Docker Desktop must be running for tests, because Testcontainers needs it.)
+(Docker Desktop must be running for tests, because Testcontainers needs it. The first test run pulls the Postgres image and is slow.)
+
+## Profiles and config
+- `local` (default): datasource from `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, defaulting to the Compose Postgres. Put personal overrides in git-ignored `application-local.yml`.
+- `test`: `src/test/resources/application-test.yml`; the datasource comes from a Testcontainers Postgres (`TestcontainersConfiguration`). Tests use `@ActiveProfiles("test")`.
+- `compose.yaml` defaults are local-dev values only; override with environment variables or a git-ignored `.env`.
 
 ## Conventions
 - Package by feature (account, transfer, ledger), not by layer.

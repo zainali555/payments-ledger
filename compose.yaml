@@ -1,0 +1,31 @@
+# Local development dependencies only. The app runs on the host (`./mvnw spring-boot:run`).
+# The defaults below are local-dev values; override them with environment variables or a git-ignored .env file.
+services:
+  postgres:
+    image: postgres:17.11
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ledger
+      POSTGRES_USER: ${DB_USERNAME:-ledger}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ledger}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-ledger} -d ledger"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: start-dev
+    ports:
+      - "8081:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+
+volumes:
+  pgdata:
