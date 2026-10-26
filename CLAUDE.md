@@ -3,7 +3,7 @@
 Portfolio project: a double-entry payments ledger with idempotent transfers.
 
 ## Stack
-Java 21, Spring Boot 3, Spring Security (OAuth2 resource server, JWT from Keycloak),
+Java 21, Spring Boot 4.1.x (4.x starters: separate Flyway and OAuth2 resource-server starters), Spring Security (OAuth2 resource server, JWT from Keycloak),
 Spring Data JPA, PostgreSQL, Flyway, Maven (use the wrapper `./mvnw`),
 Testcontainers, Docker Compose, GitHub Actions.
 
