@@ -15,8 +15,8 @@ Testcontainers, Docker Compose, GitHub Actions.
 - Grafana: 3000
 
 ## Commands
-- Build and test: `./mvnw clean verify`
-- Run tests only: `./mvnw test`
+- Build and test: `./mvnw clean verify` (Git Bash) or `.\mvnw clean verify` (PowerShell)
+- Run tests only: `./mvnw test` (Git Bash) or `.\mvnw test` (PowerShell)
 - Start dependencies: `docker compose up -d`
 - Stop dependencies: `docker compose down`
 
