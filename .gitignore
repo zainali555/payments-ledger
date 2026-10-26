@@ -1,0 +1,41 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# VS Code
+.vscode/
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.factorypath
+bin/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets and local config
+.env
+*.env
+application-local.yml
+application-local.properties
+
+# Logs
+*.log
+logs/
+
+# Docker volumes / local data
+data/
+pgdata/
+
+# Claude Code local settings
+.claude/settings.local.json
