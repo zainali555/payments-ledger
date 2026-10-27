@@ -12,7 +12,7 @@ Tick each milestone when it is finished and its tests pass. One commit per miles
 
 ## Milestones
 - [x] 1. Scaffold (Boot 4.1.2; `./mvnw clean verify` passes, 2 tests): Maven wrapper, Boot 4.1.x skeleton, package-by-feature packages, Docker Compose (Postgres + Keycloak), profiles `local` and `test`, health endpoint, one passing context test. Update the commands in CLAUDE.md.
-- [ ] 2. Schema: V1 Flyway migrations for `accounts`, `transfers`, `ledger_entries`, `idempotency_keys`, with constraints, indexes, and a seeded `EXTERNAL` account per supported currency. Testcontainers test that the migrations apply.
+- [x] 2. Schema (V1-V5 migrations; `./mvnw clean verify` passes, 20 tests): Flyway migrations for `accounts`, `transfers`, `ledger_entries`, `idempotency_keys`, with constraints, indexes, and a seeded `EXTERNAL` account per supported currency (EUR, USD). Testcontainers test that the migrations apply and the constraints hold.
 - [ ] 3. CI: GitHub Actions workflow running `./mvnw verify` on push and pull request, with Maven cache.
 - [ ] 4. Security: OAuth2 resource server with Keycloak JWTs, realm export with roles USER and ADMIN and test users, tests for 401, 403 and 200.
 - [ ] 5. Accounts: `POST /accounts`, `GET /accounts/{id}`, `GET /accounts`, DTOs, validation, the single `@ControllerAdvice` with stable error codes, ownership rules, unit and integration tests.

@@ -70,3 +70,15 @@ One entry per decision: what, why, and what else was considered.
 - **Decision:** A single `@ControllerAdvice` returns `ProblemDetail` with a stable `code` field.
 - **Reason:** Clients can branch on the code and not on message text.
 - **Alternatives:** A custom error envelope (no standard tooling).
+
+## 12. Supported currencies: EUR and USD
+- **Decision:** Only `EUR` and `USD` are supported. `accounts.currency` has a `CHECK (currency IN ('EUR', 'USD'))`, and V5 seeds one `EXTERNAL` account per currency (a partial unique index allows only one per currency). `transfers` and `ledger_entries` reference `accounts (id, currency)`, so a row's currency always equals its accounts' currency.
+- **Reason:** Two currencies are enough to exercise the currency-mismatch rule without FX. The database enforces the list and the currency consistency, not only the application.
+- **Adding a currency:** A new Flyway migration that replaces the check constraint and seeds its `EXTERNAL` account. Old migrations are never edited.
+- **Alternatives:** A `currencies` table with a foreign key (more flexible, but more moving parts for a fixed list of two). Free-form ISO codes (rejected: no seeded `EXTERNAL` account for them).
+
+## 13. Schema details
+- **Decision:** Ids are `BIGINT` identity columns (ascending id order is needed for lock ordering, see 8). `EXTERNAL` accounts have no `owner_id`, `CUSTOMER` accounts must have one. `ledger_entries` has a unique `(transfer_id, direction)`, an index on `(account_id, created_at DESC, id DESC)` for history, and triggers that reject `UPDATE`, `DELETE` and `TRUNCATE`. `idempotency_keys` has a unique `(owner_id, key)` and nullable `response_status` and `response_body`, set together.
+- **Reason:** The database enforces the append-only rule and the invariants from decisions 4, 5, 6 and 10, so a bug in the service layer cannot break them.
+- **Alternatives:** UUID ids (no natural lock order). Enforcing append-only only in code (rejected: no safety net).
+- **Trade-off:** Ids are sequential `BIGINT` because milestone 7 locks accounts in ascending id order; the cost is that account ids are guessable, so ownership checks on reads are mandatory, and UUIDs are listed as a "what I'd do next" item for the README.
