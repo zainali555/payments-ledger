@@ -9,6 +9,12 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keycloak realm from keycloak/ledger-realm.json. The issuer is resolved lazily on the first token.
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081/realms/ledger}
 
 management:
   endpoints:

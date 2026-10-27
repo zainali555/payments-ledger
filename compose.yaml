@@ -19,9 +19,12 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.8.1
-    command: start-dev
+    # Imports keycloak/ledger-realm.json (realm `ledger`, roles USER and ADMIN, local-dev test users) on first start.
+    command: start-dev --import-realm
     ports:
       - "8081:8080"
+    volumes:
+      - ./keycloak/ledger-realm.json:/opt/keycloak/data/import/ledger-realm.json:ro
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
