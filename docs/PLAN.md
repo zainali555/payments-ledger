@@ -15,7 +15,7 @@ Tick each milestone when it is finished and its tests pass. One commit per miles
 - [x] 2. Schema (V1-V5 migrations; `./mvnw clean verify` passes, 20 tests): Flyway migrations for `accounts`, `transfers`, `ledger_entries`, `idempotency_keys`, with constraints, indexes, and a seeded `EXTERNAL` account per supported currency (EUR, USD). Testcontainers test that the migrations apply and the constraints hold.
 - [x] 3. CI (`.github/workflows/ci.yml`; passes on GitHub, 20 tests): GitHub Actions workflow running `./mvnw verify` on push and pull request, with Maven cache.
 - [x] 4. Security (`keycloak/ledger-realm.json`, `SecurityConfig`; `./mvnw clean verify` passes, 33 tests): OAuth2 resource server with Keycloak JWTs, realm export with roles USER and ADMIN and test users, tests for 401, 403 and 200.
-- [ ] 5. Accounts: `POST /accounts`, `GET /accounts/{id}`, `GET /accounts`, DTOs, validation, the single `@ControllerAdvice` with stable error codes, ownership rules, unit and integration tests.
+- [x] 5. Accounts (`AccountController`, `ApiExceptionHandler`; `./mvnw clean verify` passes, 68 tests): `POST /accounts`, `GET /accounts/{id}`, `GET /accounts`, DTOs, validation, the single `@ControllerAdvice` with stable error codes, ownership rules, unit and integration tests.
 - [ ] 6. Deposits and transfers: `POST /accounts/{id}/deposits` (ADMIN), `POST /transfers`, `GET /transfers/{id}`, double-entry in one transaction, idempotency, all error codes, duplicate-request and concurrent-same-key tests.
 - [ ] 7. Concurrency: lock both accounts with `SELECT ... FOR UPDATE` in ascending id order, a test with 50 concurrent transfers on one account checking that no money is created or lost, a decision entry.
 - [ ] 8. Balance and history: `GET /accounts/{id}/balance`, `GET /accounts/{id}/transactions` with pagination, sorting and date range, an index migration, tests for empty accounts and large page numbers.
@@ -61,3 +61,10 @@ com.zainali.ledger
   reconciliation/  job, service, admin controller
   common/          error handling, security config, money type, web filters
 ```
+
+## Hardening backlog
+- Reject unknown request fields (for example a `type` sent to `POST /accounts` is currently ignored).
+- 401 and 403 from the security filter chain should use the same problem-response format as the `@ControllerAdvice`.
+- Paginate `GET /accounts`.
+- Validate the JWT audience.
+- Add `FORBIDDEN` and `INTERNAL_ERROR` to the error-code list.
