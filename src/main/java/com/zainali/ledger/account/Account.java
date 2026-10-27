@@ -6,6 +6,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import com.zainali.ledger.common.Currency;
+import com.zainali.ledger.common.ErrorCode;
+import com.zainali.ledger.common.LedgerException;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -54,6 +56,27 @@ public class Account {
 		account.balance = 0;
 		account.createdAt = Instant.now();
 		return account;
+	}
+
+	/** Adds to the cached balance. The caller must hold the row lock. */
+	public void credit(long amount) {
+		requirePositive(amount);
+		balance = Math.addExact(balance, amount);
+	}
+
+	/** Subtracts from the cached balance. Only an EXTERNAL account may go negative. The caller must hold the row lock. */
+	public void debit(long amount) {
+		requirePositive(amount);
+		if (type != AccountType.EXTERNAL && balance < amount) {
+			throw new LedgerException(ErrorCode.INSUFFICIENT_FUNDS, "Insufficient funds");
+		}
+		balance = Math.subtractExact(balance, amount);
+	}
+
+	private static void requirePositive(long amount) {
+		if (amount <= 0) {
+			throw new IllegalArgumentException("Amount must be positive");
+		}
 	}
 
 	public Long getId() {

@@ -68,3 +68,4 @@ com.zainali.ledger
 - Paginate `GET /accounts`.
 - Validate the JWT audience.
 - Add `FORBIDDEN` and `INTERNAL_ERROR` to the error-code list.
+- A transfer to a nonexistent target returns 404, so callers can probe which account ids exist. Uniform errors or UUID ids would fix it.

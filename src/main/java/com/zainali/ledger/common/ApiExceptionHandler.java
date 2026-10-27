@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -39,6 +41,14 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 		return handleExceptionInternal(ex, problem, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
 	}
 
+	@ExceptionHandler(LedgerException.class)
+	ResponseEntity<Object> handleLedger(LedgerException ex, WebRequest request) {
+		HttpStatus status = ex.code().status();
+		ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
+		problem.setProperty("code", ex.code().name());
+		return handleExceptionInternal(ex, problem, new HttpHeaders(), status, request);
+	}
+
 	@ExceptionHandler(AccessDeniedException.class)
 	ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
 		ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Access denied");
@@ -63,6 +73,18 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 				.toList();
 		problem.setProperty("errors", errors);
 		return handleExceptionInternal(ex, problem, headers, status, request);
+	}
+
+	/** A missing Idempotency-Key header has its own code; any other missing header stays a plain validation failure. */
+	@Override
+	protected ResponseEntity<Object> handleServletRequestBindingException(ServletRequestBindingException ex,
+			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+		if (ex instanceof MissingRequestHeaderException missing
+				&& ApiHeaders.IDEMPOTENCY_KEY.equalsIgnoreCase(missing.getHeaderName())) {
+			return handleLedger(new LedgerException(ErrorCode.IDEMPOTENCY_KEY_REQUIRED,
+					"The " + ApiHeaders.IDEMPOTENCY_KEY + " header is required"), request);
+		}
+		return super.handleServletRequestBindingException(ex, headers, status, request);
 	}
 
 	@Override

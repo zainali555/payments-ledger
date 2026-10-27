@@ -3,6 +3,10 @@ spring:
     name: ledger
   profiles:
     default: local
+  jackson:
+    deserialization:
+      # Money is integer minor units: {"amount": 10.5} must be rejected, not silently truncated to 10.
+      accept-float-as-int: false
   jpa:
     open-in-view: false
     hibernate:
