@@ -181,6 +181,15 @@ class DepositServiceTests {
 	}
 
 	@Test
+	void currencyMismatchMessageDoesNotNameTheCurrencies() {
+		lockReturns(account(EXTERNAL_ID, AccountType.EXTERNAL, Currency.EUR, 0),
+				account(TARGET_ID, AccountType.CUSTOMER, Currency.USD, 0));
+
+		assertThatThrownBy(() -> service.deposit(ADMIN, "key", TARGET_ID, 10, Currency.EUR))
+				.isInstanceOf(LedgerException.class).message().doesNotContain("EUR").doesNotContain("USD");
+	}
+
+	@Test
 	void depositToAMissingAccountIsNotFound() {
 		when(locking.lockInIdOrder(anyLong(), anyLong())).thenThrow(new NotFoundException("Account not found"));
 

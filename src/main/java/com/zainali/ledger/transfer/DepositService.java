@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zainali.ledger.account.Account;
@@ -35,7 +36,7 @@ class DepositService {
 	}
 
 	/** Callers must already be authorised as ADMIN; the filter chain enforces that for the endpoint. */
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED) // required by the idempotency and lock reads, DECISIONS 9
 	IdempotentResult<TransferResponse> deposit(Caller caller, String idempotencyKey, long accountId, long amount,
 			Currency currency) {
 		String requestHash = RequestHash.of("DEPOSIT", accountId, amount, currency);
@@ -58,7 +59,7 @@ class DepositService {
 		}
 		if (target.getCurrency() != currency) {
 			throw new LedgerException(ErrorCode.CURRENCY_MISMATCH,
-					"Account " + accountId + " holds " + target.getCurrency() + ", not " + currency);
+					"The deposit currency must match the account currency");
 		}
 
 		external.debit(amount);

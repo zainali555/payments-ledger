@@ -287,6 +287,14 @@ class TransferServiceTests {
 	}
 
 	@Test
+	void currencyMismatchMessageDoesNotNameTheCurrencies() {
+		lockReturns(customer(SOURCE_ID, Currency.EUR, 1_000), customer(TARGET_ID, Currency.USD, 0));
+
+		assertThatThrownBy(() -> transfer(ALICE, SOURCE_ID, TARGET_ID, 10, Currency.EUR))
+				.isInstanceOf(LedgerException.class).message().doesNotContain("EUR").doesNotContain("USD");
+	}
+
+	@Test
 	void requestCurrencyThatDiffersFromBothAccountsIsRejected() {
 		lockReturns(customer(SOURCE_ID, Currency.EUR, 1_000), customer(TARGET_ID, Currency.EUR, 0));
 

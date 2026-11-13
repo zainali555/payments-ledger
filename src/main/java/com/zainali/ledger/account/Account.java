@@ -17,6 +17,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 /**
  * Persistence model only; the API uses {@link AccountResponse}. {@code balance} is in minor units.
@@ -40,6 +41,10 @@ public class Account {
 	private Currency currency;
 
 	private long balance;
+
+	/** Optimistic-locking version: a write based on a stale read fails. The FOR UPDATE row lock remains the primary guard. */
+	@Version
+	private long version;
 
 	@Column(name = "created_at")
 	private Instant createdAt;
@@ -97,6 +102,10 @@ public class Account {
 
 	public long getBalance() {
 		return balance;
+	}
+
+	public long getVersion() {
+		return version;
 	}
 
 	public Instant getCreatedAt() {

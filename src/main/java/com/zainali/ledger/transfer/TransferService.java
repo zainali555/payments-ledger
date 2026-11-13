@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zainali.ledger.account.Account;
@@ -38,7 +39,7 @@ class TransferService {
 		this.ledger = ledger;
 	}
 
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED) // required by the idempotency and lock reads, DECISIONS 9
 	IdempotentResult<TransferResponse> transfer(Caller caller, String idempotencyKey, long sourceAccountId,
 			long targetAccountId, long amount, Currency currency) {
 		String requestHash = RequestHash.of("TRANSFER", sourceAccountId, targetAccountId, amount, currency);
@@ -78,8 +79,7 @@ class TransferService {
 		}
 		if (source.getCurrency() != currency || target.getCurrency() != currency) {
 			throw new LedgerException(ErrorCode.CURRENCY_MISMATCH,
-					"Both accounts must hold " + currency + " (source " + source.getCurrency() + ", target "
-							+ target.getCurrency() + ")");
+					"The transfer currency must match the currency of both accounts");
 		}
 
 		// Both balances were read by the FOR UPDATE load above, so they are current. debit() rejects an overdraft.

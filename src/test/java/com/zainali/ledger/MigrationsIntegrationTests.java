@@ -27,7 +27,7 @@ class MigrationsIntegrationTests {
 		List<Map<String, Object>> history = jdbc.queryForList(
 				"SELECT version, success FROM flyway_schema_history WHERE version IS NOT NULL ORDER BY installed_rank");
 
-		assertThat(history).hasSize(5);
+		assertThat(history).hasSize(6);
 		assertThat(history).allSatisfy(row -> assertThat(row.get("success")).isEqualTo(true));
 	}
 
