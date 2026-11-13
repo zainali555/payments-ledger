@@ -25,6 +25,13 @@ interface AccountRepository extends JpaRepository<Account, Long> {
 	@Query("select a from Account a where a.id = :id")
 	Optional<Account> findByIdForUpdate(@Param("id") long id);
 
+	/**
+	 * Only the owner id, so no entity enters the persistence context before the lock is taken. Empty when the account
+	 * is missing; an EXTERNAL account has a null owner, which a scalar query reports as empty too.
+	 */
+	@Query("select a.ownerId from Account a where a.id = :id")
+	Optional<String> findOwnerIdById(@Param("id") long id);
+
 	/** Only the id, so no entity is cached before the lock is taken. */
 	@Query("select a.id from Account a where a.type = :type and a.currency = :currency")
 	Optional<Long> findIdByTypeAndCurrency(@Param("type") AccountType type, @Param("currency") Currency currency);

@@ -2,6 +2,7 @@ package com.zainali.ledger.account;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeSet;
 
 import org.springframework.stereotype.Service;
@@ -29,6 +30,15 @@ public class AccountLocking {
 	public long externalAccountId(Currency currency) {
 		return accounts.findIdByTypeAndCurrency(AccountType.EXTERNAL, currency)
 				.orElseThrow(() -> new IllegalStateException("No EXTERNAL account for " + currency));
+	}
+
+	/**
+	 * The owner id of an account, read as a bare value so no {@link Account} is loaded into the persistence context
+	 * before the lock is taken. Empty if the account is missing or has no owner (EXTERNAL), which callers treat alike.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public Optional<String> ownerIdOf(long id) {
+		return accounts.findOwnerIdById(id);
 	}
 
 	/**
