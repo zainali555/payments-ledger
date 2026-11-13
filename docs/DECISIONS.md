@@ -45,11 +45,33 @@ One entry per decision: what, why, and what else was considered.
 - **Alternatives:** Own accounts only (too restrictive).
 
 ## 8. Pessimistic locking in a fixed order
-- **Decision:** Lock both accounts with `SELECT ... FOR UPDATE` in ascending id order.
-- **Reason:** A consistent order prevents deadlocks, and there is no retry logic to get wrong. Final rationale is recorded when milestone 7 is built.
+- **Decision (final, milestone 7):** Every transaction that changes balances locks all the accounts it touches with `SELECT ... FOR UPDATE` in ascending id order, before reading any balance, and holds the locks until commit. `AccountLocking.lockInIdOrder` is the only place account locks are taken; transfers and deposits both use it, and reversals (milestone 9) must too. Isolation stays `READ COMMITTED` (decision 9).
+- **Global lock order:** within one transaction the idempotency key row comes first (the `INSERT ... ON CONFLICT` in decision 9), then accounts by ascending id. A transaction holds at most one key and takes it before any account lock, so a request waiting on a duplicate key holds no account locks, and there is no cycle between key and account locks.
+- **Reason:**
+  - **No deadlocks by construction.** A deadlock needs a cycle of transactions each waiting for a lock held by the next. If every transaction acquires locks in the same total order, the one holding the highest lock in any would-be cycle can always proceed, so no cycle forms. Without the order, A to B and B to A at the same time is the classic deadlock. Postgres would detect it after `deadlock_timeout` (1 s) and abort one side with SQLSTATE 40P01, which would surface as a 500 and need retry logic.
+  - **Correct funds check.** The balance is read by the locking `SELECT`, so the insufficient-funds check and the `balance >= 0` constraint see the same value (decision 17).
+  - **No retry logic.** Contention means waiting, not failing. Retries are easy to get wrong around idempotency, because a retried transaction must re-insert its key row.
+  - **Ids give a natural order.** `BIGINT` identity ids (decision 13) are totally ordered and never change.
+- **Evidence (`TransferConcurrencyIntegrationTests`, `AccountLockingTests`):**
+  - 50 concurrent transfers on one hot account, 25 in and 25 out, with each counterpart sending to and receiving from it at once and counterpart ids on both sides of the hot id. The hot account cannot afford every outgoing transfer. Every response is 201 or `INSUFFICIENT_FUNDS`, the sum of the involved balances is unchanged, every balance equals its entry sum, and every transfer has one debit and one credit that sum to zero.
+  - All 40 ordered pairs among five accounts (both directions twice) run at once. All succeed, and every balance ends where it started.
+  - The unit tests pin ascending numeric order, de-duplication, and stopping at a missing account.
+  - **Mutation check:** with the lock order changed to argument order, both integration tests fail with 500s, and the Postgres log shows `deadlock detected`. With ascending order they pass, so the tests detect the deadlocks the order prevents.
+- **Costs accepted:**
+  - Transfers on one account run one at a time, so a hot account's throughput is limited by one row lock. The `EXTERNAL` row is the hottest (decision 16).
+  - A transfer to a missing target whose id is higher than the source's locks the source before failing with 404. This only blocks that source's other transfers briefly.
+  - Lock waits are unbounded until the `lock_timeout` from the hardening backlog (M2) is added.
+  - Any future code path that locks more than one account must go through `lockInIdOrder`, or the guarantee is lost.
 - **Optimistic version as a backstop (review finding M1):** `accounts.version` (V6, JPA `@Version`) is bumped by every balance change. It is not the concurrency strategy, the row lock is. It makes a write based on a stale read fail with an optimistic-locking error instead of silently overwriting a newer balance, if some future code path updates an account without `FOR UPDATE`. There is no retry: such a failure means a bug, and it surfaces as `INTERNAL_ERROR`. Tested by loading a stale copy, committing a concurrent credit, then writing the stale copy (`AccountOptimisticLockingIntegrationTests`).
 - **`credit` and `debit` stay public:** M1 suggested making them package-private. The callers are `TransferService` and `DepositService` in the `transfer` package, while `Account` lives in `account`, so package-private would not compile. Moving the money-moving logic into `account` would mean `AccountLocking` (or a new service) owning debit and credit; that is a larger refactor and was not done. The guards instead are: the methods require a positive amount, `debit` refuses an overdraft on non-EXTERNAL accounts, and the `@Version` column plus the `balance >= 0` constraint catch misuse. Revisit when reversals (milestone 9) add a third caller.
-- **Alternatives:** Optimistic locking with retry as the main strategy (more retries under contention on hot accounts).
+- **Alternatives:**
+  - *Optimistic locking (`@Version`) with retry as the main strategy* (rejected): on a hot account most concurrent attempts fail and retry, so throughput falls as contention grows. Each retry must also redo the idempotency-key insert. It is kept only as a backstop (above).
+  - *Atomic conditional update* (`UPDATE accounts SET balance = balance - :amt WHERE id = :id AND balance >= :amt`, checking the row count; rejected): no explicit `SELECT`, and the funds check is in the statement. But the two `UPDATE`s still take row locks and still need a fixed order to avoid deadlocks. It also bypasses the JPA entity, the `@Version` backstop, and the domain checks in `Account.debit`. It gains little over `FOR UPDATE` here.
+  - *`SERIALIZABLE` isolation with retry* (rejected): it needs a retry loop for serialization failures under contention, and it breaks the read-after-wait that idempotency relies on (decision 9).
+  - *Lock in request order and retry on deadlock* (rejected): each deadlock costs at least `deadlock_timeout` (1 s) before Postgres aborts one side, and then a retry. It turns a problem that can be prevented into one that must be recovered from.
+  - *`NOWAIT` or `SKIP LOCKED`* (rejected): it fails or skips immediately instead of waiting. That is wrong for payments, where a short wait is the expected behaviour. A bounded `lock_timeout` (M2) is the better limit.
+  - *Advisory locks (`pg_advisory_xact_lock(id)`)* (rejected): they need the same ordering, they are not tied to the row, and nothing stops code from updating a row without taking the advisory lock first.
+  - *A single-writer queue or one actor per account* (rejected): it serialises without database locks, but it adds infrastructure and only works in one process unless the queue is partitioned. That is too much for a modular monolith (decision 1).
 
 ## 9. Idempotency safe under concurrent requests
 - **Decision:** In the same transaction as the work, first run `INSERT INTO idempotency_keys ... ON CONFLICT DO NOTHING` on the unique `(owner_id, key)`.
