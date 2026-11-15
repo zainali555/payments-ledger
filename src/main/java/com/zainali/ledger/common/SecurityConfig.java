@@ -20,6 +20,9 @@ class SecurityConfig {
 		http
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
+						// The API description and Swagger UI are public by decision (DECISIONS 20).
+						.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml",
+								"/swagger-ui.html", "/swagger-ui/**").permitAll()
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.POST, "/accounts/*/deposits").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.POST, "/transfers/*/reverse").hasRole("ADMIN")

@@ -1,0 +1,128 @@
+### Payments Ledger: one example call per endpoint.
+### Works with the VS Code "REST Client" extension. In IntelliJ's HTTP Client, replace the
+### {{name.response.body.x}} references with variables set in a response handler, for example:
+###   > {% client.global.set("aliceToken", response.body.access_token); %}
+###
+### Start the dependencies first: `docker compose up -d`, then `./mvnw spring-boot:run`.
+### Run the requests top to bottom: later ones use ids and tokens captured from earlier ones.
+### The interactive docs are at http://localhost:8080/swagger-ui.html (click Authorize and paste a token).
+
+@baseUrl = http://localhost:8080
+@keycloak = http://localhost:8081
+
+### 1. Get a local token from Keycloak (password grant, DEVELOPMENT ONLY).
+### Users come from keycloak/ledger-realm.json; these passwords are local-dev values and must never be
+### used anywhere else:
+###   alice      / alice-dev-password   (USER)
+###   bob        / bob-dev-password     (USER)
+###   admin-user / admin-dev-password   (ADMIN)
+### The token lives 15 minutes: when a request returns 401, run the login again.
+
+# @name loginAlice
+POST {{keycloak}}/realms/ledger/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=ledger-api&username=alice&password=alice-dev-password
+
+###
+# @name loginBob
+POST {{keycloak}}/realms/ledger/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=ledger-api&username=bob&password=bob-dev-password
+
+###
+# @name loginAdmin
+POST {{keycloak}}/realms/ledger/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=ledger-api&username=admin-user&password=admin-dev-password
+
+### 2. Reuse the token: send it as `Authorization: Bearer <access_token>`. The variables below read it from
+### the login responses above.
+
+@aliceToken = {{loginAlice.response.body.access_token}}
+@bobToken = {{loginBob.response.body.access_token}}
+@adminToken = {{loginAdmin.response.body.access_token}}
+
+### Same thing with curl, for reference:
+###   TOKEN=$(curl -s -d grant_type=password -d client_id=ledger-api -d username=alice \
+###     -d password=alice-dev-password http://localhost:8081/realms/ledger/protocol/openid-connect/token \
+###     | jq -r .access_token)
+###   curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/accounts
+
+### Health (public)
+GET {{baseUrl}}/actuator/health
+
+### POST /accounts: open an account for the caller (alice, EUR)
+# @name aliceAccount
+POST {{baseUrl}}/accounts
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{ "currency": "EUR" }
+
+### POST /accounts: open an account for the caller (bob, EUR)
+# @name bobAccount
+POST {{baseUrl}}/accounts
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{ "currency": "EUR" }
+
+### GET /accounts: your accounts (an ADMIN sees all)
+GET {{baseUrl}}/accounts
+Authorization: Bearer {{aliceToken}}
+
+### GET /accounts/{id}
+GET {{baseUrl}}/accounts/{{aliceAccount.response.body.id}}
+Authorization: Bearer {{aliceToken}}
+
+### POST /accounts/{id}/deposits: ADMIN only, needs an Idempotency-Key.
+### Amounts are minor units: 15000 = 150.00 EUR.
+### Sending this twice with the same key returns the same response plus `Idempotency-Replayed: true`.
+### A failed request stores nothing under its key, so a retry with the same key runs again.
+POST {{baseUrl}}/accounts/{{aliceAccount.response.body.id}}/deposits
+Authorization: Bearer {{adminToken}}
+Idempotency-Key: dev-deposit-0001
+Content-Type: application/json
+
+{ "amount": 15000, "currency": "EUR" }
+
+### GET /accounts/{id}/balance
+GET {{baseUrl}}/accounts/{{aliceAccount.response.body.id}}/balance
+Authorization: Bearer {{aliceToken}}
+
+### POST /transfers: alice sends 25.00 EUR to bob. Use a new Idempotency-Key for each new transfer.
+# @name transfer
+POST {{baseUrl}}/transfers
+Authorization: Bearer {{aliceToken}}
+Idempotency-Key: dev-transfer-0001
+Content-Type: application/json
+
+{
+  "sourceAccountId": {{aliceAccount.response.body.id}},
+  "targetAccountId": {{bobAccount.response.body.id}},
+  "amount": 2500,
+  "currency": "EUR"
+}
+
+### GET /transfers/{id}: visible to its parties and to an ADMIN
+GET {{baseUrl}}/transfers/{{transfer.response.body.id}}
+Authorization: Bearer {{bobToken}}
+
+### GET /accounts/{id}/transactions: ledger entries, paged (page, size, sort, from, to)
+GET {{baseUrl}}/accounts/{{aliceAccount.response.body.id}}/transactions?page=0&size=20&sort=createdAt,desc
+Authorization: Bearer {{aliceToken}}
+
+### POST /transfers/{id}/reverse: ADMIN only, needs an Idempotency-Key, no body
+POST {{baseUrl}}/transfers/{{transfer.response.body.id}}/reverse
+Authorization: Bearer {{adminToken}}
+Idempotency-Key: dev-reverse-0001
+
+### POST /admin/reconciliation: ADMIN only, read-only consistency check
+POST {{baseUrl}}/admin/reconciliation
+Authorization: Bearer {{adminToken}}
+
+### The API description (public): JSON for tooling, Swagger UI for people
+GET {{baseUrl}}/v3/api-docs

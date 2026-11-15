@@ -20,6 +20,13 @@ spring:
           # Keycloak realm from keycloak/ledger-realm.json. The issuer is resolved lazily on the first token.
           issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081/realms/ledger}
 
+springdoc:
+  swagger-ui:
+    # Keep the pasted token across page reloads while trying endpoints.
+    persist-authorization: true
+    operations-sorter: method
+  # Production: set springdoc.api-docs.enabled=false and springdoc.swagger-ui.enabled=false (DECISIONS 20).
+
 management:
   endpoints:
     web:

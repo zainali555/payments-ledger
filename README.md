@@ -21,4 +21,11 @@ All endpoints except `GET /actuator/health` need a Keycloak bearer token with th
 
 Transfer responses have the fields `id`, `type` (`TRANSFER`, `DEPOSIT` or `REVERSAL`), `status` (`COMPLETED` or `REVERSED`), `sourceAccountId`, `targetAccountId`, `amount`, `currency`, `reversesTransferId` (null except on a reversal) and `createdAt`.
 
+## API docs
+Interactive docs (Swagger UI) are at <http://localhost:8080/swagger-ui.html> and the OpenAPI description at <http://localhost:8080/v3/api-docs>. Both are public (no token) so the page can load; click **Authorize** and paste a Keycloak `access_token` to try the endpoints. The description documents every endpoint with request and response examples, every error response (RFC 7807 problem documents with a stable `code`), the `Idempotency-Key` header and the bearer scheme. In production, disable or restrict them (`springdoc.api-docs.enabled=false`, `springdoc.swagger-ui.enabled=false`; DECISIONS 20).
+
+`api.http` in the project root has one example call per endpoint, including how to get a token for the local dev users and reuse it (VS Code REST Client).
+
+A failed request stores nothing under its `Idempotency-Key`: it rolls back completely, so a retry with the same key runs again (for example an `INSUFFICIENT_FUNDS` transfer can succeed once the account has been funded). Only a successful request is replayed.
+
 Balances are integer minor units (cents). Errors are RFC 7807 problem responses with a stable `code`, for example `VALIDATION_FAILED`, `NOT_FOUND`, `FORBIDDEN`, `IDEMPOTENCY_KEY_REQUIRED`, `IDEMPOTENCY_KEY_REUSED`, `INSUFFICIENT_FUNDS`, `SAME_ACCOUNT`, `CURRENCY_MISMATCH`, `EXTERNAL_ACCOUNT_NOT_ALLOWED`, `NOT_REVERSIBLE`, `ALREADY_REVERSED`.
