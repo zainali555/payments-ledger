@@ -85,4 +85,8 @@ class LedgerEntry {
 		return currency;
 	}
 
+	Instant getCreatedAt() {
+		return createdAt;
+	}
+
 }

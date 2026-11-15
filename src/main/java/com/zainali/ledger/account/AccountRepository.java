@@ -16,6 +16,8 @@ interface AccountRepository extends JpaRepository<Account, Long> {
 
 	Optional<Account> findByIdAndOwnerId(Long id, String ownerId);
 
+	boolean existsByIdAndOwnerId(Long id, String ownerId);
+
 	List<Account> findByOwnerIdOrderByIdAsc(String ownerId);
 
 	List<Account> findAllByOrderByIdAsc();

@@ -27,8 +27,16 @@ class MigrationsIntegrationTests {
 		List<Map<String, Object>> history = jdbc.queryForList(
 				"SELECT version, success FROM flyway_schema_history WHERE version IS NOT NULL ORDER BY installed_rank");
 
-		assertThat(history).hasSize(6);
+		assertThat(history).hasSize(7);
 		assertThat(history).allSatisfy(row -> assertThat(row.get("success")).isEqualTo(true));
+	}
+
+	@Test
+	void historyIndexesExistForDateAndAmountSorting() {
+		List<String> indexes = jdbc.queryForList(
+				"SELECT indexname FROM pg_indexes WHERE tablename = 'ledger_entries'", String.class);
+
+		assertThat(indexes).contains("ledger_entries_account_created_idx", "ledger_entries_account_amount_idx");
 	}
 
 	@Test

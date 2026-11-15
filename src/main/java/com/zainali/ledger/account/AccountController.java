@@ -39,6 +39,11 @@ class AccountController {
 		return AccountResponse.from(service.get(Caller.from(authentication), id));
 	}
 
+	@GetMapping("/{id}/balance")
+	BalanceResponse balance(@PathVariable long id, Authentication authentication) {
+		return BalanceResponse.from(service.get(Caller.from(authentication), id));
+	}
+
 	@GetMapping
 	List<AccountResponse> list(Authentication authentication) {
 		return service.list(Caller.from(authentication)).stream().map(AccountResponse::from).toList();
