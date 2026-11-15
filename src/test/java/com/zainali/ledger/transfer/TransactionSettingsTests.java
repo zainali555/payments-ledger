@@ -31,4 +31,9 @@ class TransactionSettingsTests {
 		assertThat(transactionalOn(TransferService.class, "transfer").isolation()).isEqualTo(Isolation.READ_COMMITTED);
 	}
 
+	@Test
+	void reversalPinsReadCommitted() {
+		assertThat(transactionalOn(ReversalService.class, "reverse").isolation()).isEqualTo(Isolation.READ_COMMITTED);
+	}
+
 }

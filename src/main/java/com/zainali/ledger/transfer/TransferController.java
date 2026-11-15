@@ -24,9 +24,11 @@ import jakarta.validation.Valid;
 class TransferController {
 
 	private final TransferService service;
+	private final ReversalService reversals;
 
-	TransferController(TransferService service) {
+	TransferController(TransferService service, ReversalService reversals) {
 		this.service = service;
+		this.reversals = reversals;
 	}
 
 	/** The header comes first so a missing Idempotency-Key is reported before the body is read. */
@@ -36,6 +38,20 @@ class TransferController {
 		IdempotentResult<TransferResponse> result = service.transfer(Caller.from(authentication), idempotencyKey,
 				request.sourceAccountId(), request.targetAccountId(), request.amount(), request.currency());
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").build(result.body().id());
+		ResponseEntity.BodyBuilder response = ResponseEntity.status(result.status()).location(location);
+		if (result.replayed()) {
+			response.header(ApiHeaders.IDEMPOTENCY_REPLAYED, "true");
+		}
+		return response.body(result.body());
+	}
+
+	/** ADMIN only (filter chain). Returns the new REVERSAL transfer, with a Location pointing at it. */
+	@PostMapping("/{id}/reverse")
+	ResponseEntity<TransferResponse> reverse(@RequestHeader(ApiHeaders.IDEMPOTENCY_KEY) String idempotencyKey,
+			@PathVariable long id, Authentication authentication) {
+		IdempotentResult<TransferResponse> result = reversals.reverse(Caller.from(authentication), idempotencyKey, id);
+		URI location = ServletUriComponentsBuilder.fromCurrentContextPath().path("/transfers/{id}")
+				.build(result.body().id());
 		ResponseEntity.BodyBuilder response = ResponseEntity.status(result.status()).location(location);
 		if (result.replayed()) {
 			response.header(ApiHeaders.IDEMPOTENCY_REPLAYED, "true");

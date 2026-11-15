@@ -22,6 +22,7 @@ class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.POST, "/accounts/*/deposits").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.POST, "/transfers/*/reverse").hasRole("ADMIN")
 						.requestMatchers("/accounts/**", "/transfers/**").hasAnyRole("USER", "ADMIN")
 						.anyRequest().authenticated())
 				.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))

@@ -73,6 +73,25 @@ class Transfer {
 		return transfer;
 	}
 
+	/** The compensating transfer for {@code original}: same amount and currency, accounts swapped (DECISIONS 10). */
+	static Transfer reversalOf(Transfer original, String createdBy) {
+		Transfer reversal = completed(TransferType.REVERSAL, original.targetAccountId, original.sourceAccountId,
+				original.amount, original.currency, createdBy);
+		reversal.reversesTransferId = original.id;
+		return reversal;
+	}
+
+	/**
+	 * The only change ever made to a transfer row. Only a COMPLETED plain transfer can become REVERSED; the database
+	 * enforces the same rule ({@code transfers_reversed_chk}).
+	 */
+	void markReversed() {
+		if (type != TransferType.TRANSFER || status != TransferStatus.COMPLETED) {
+			throw new IllegalStateException("Only a COMPLETED TRANSFER can be marked REVERSED");
+		}
+		status = TransferStatus.REVERSED;
+	}
+
 	Long getId() {
 		return id;
 	}

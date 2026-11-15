@@ -4,7 +4,7 @@ import java.time.Instant;
 
 import com.zainali.ledger.common.Currency;
 
-/** {@code amount} is in minor units (cents). */
+/** {@code amount} is in minor units (cents). {@code reversesTransferId} is set only on a REVERSAL. */
 record TransferResponse(
 		long id,
 		TransferType type,
@@ -13,12 +13,13 @@ record TransferResponse(
 		long targetAccountId,
 		long amount,
 		Currency currency,
+		Long reversesTransferId,
 		Instant createdAt) {
 
 	static TransferResponse from(Transfer transfer) {
 		return new TransferResponse(transfer.getId(), transfer.getType(), transfer.getStatus(),
 				transfer.getSourceAccountId(), transfer.getTargetAccountId(), transfer.getAmount(), transfer.getCurrency(),
-				transfer.getCreatedAt());
+				transfer.getReversesTransferId(), transfer.getCreatedAt());
 	}
 
 }
