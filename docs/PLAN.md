@@ -26,7 +26,7 @@ Tick each milestone when it is finished and its tests pass. One commit per miles
 - [ ] 13. Hardening review: findings by severity, high and medium fixed one commit at a time.
 - [ ] 14. Coverage: JaCoCo, tests for the most important untested paths, a summary in CI output.
 - [x] 15. Containerize (Dockerfile, .dockerignore, compose.yaml, stable Keycloak user ids, DECISIONS 21; `./mvnw clean verify` passes, 293 tests; Prometheus and Grafana join the stack in milestone 11): multi-stage Dockerfile with a non-root user, one command starts app, Postgres and Keycloak.
-- [ ] 16. README and final clone-and-run audit.
+- [x] 16. README and final clone-and-run audit (README rewritten; fresh-clone run of the README commands and `./mvnw clean verify` pass, 293 tests; three unused test starters removed from the POM).
 
 ## Dependencies to ask about before adding
 springdoc-openapi (milestone 12), JaCoCo (milestone 14), and a JSON logging library only if Boot's built-in structured logging is not enough (milestone 11).
