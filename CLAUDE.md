@@ -17,8 +17,9 @@ Testcontainers, Docker Compose, GitHub Actions.
 ## Commands
 - Build and test: `./mvnw clean verify` (Git Bash) or `.\mvnw clean verify` (PowerShell)
 - Run tests only: `./mvnw test` (Git Bash) or `.\mvnw test` (PowerShell)
-- Start dependencies (Postgres, Keycloak): `docker compose up -d`
-- Stop dependencies: `docker compose down`
+- Start the whole stack (app, Postgres, Keycloak): `docker compose up --build`
+- Start only the dependencies (Postgres, Keycloak), to run the app on the host: `docker compose up -d postgres keycloak`
+- Stop: `docker compose down`; reset to an empty database: `docker compose down -v`
 - Run the app (profile `local` is the default; needs the dependencies up): `./mvnw spring-boot:run` (Git Bash) or `.\mvnw spring-boot:run` (PowerShell)
 - Health check: `curl http://localhost:8080/actuator/health`
 

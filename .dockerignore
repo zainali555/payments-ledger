@@ -1,0 +1,28 @@
+# Keep the build context small and keep secrets and local files out of the image.
+.git
+.github
+.vscode
+.idea
+.claude
+target
+data
+pgdata
+logs
+*.log
+*.iml
+
+# Secrets and local config
+.env
+*.env
+application-local.yml
+application-local.properties
+
+# Not needed to build the image
+docs
+keycloak
+api.http
+README.md
+CLAUDE.md
+Dockerfile
+.dockerignore
+compose.yaml

@@ -25,7 +25,7 @@ Tick each milestone when it is finished and its tests pass. One commit per miles
 - [x] 12. API docs (springdoc 3.2.0, `OpenApiConfig`, `ApiDocs`, `api.http`, `ApiDocsIntegrationTests`, DECISIONS 20; docs endpoints public by decision; no migration needed; `./mvnw clean verify` passes, 293 tests): springdoc-openapi with examples, error responses and the security scheme, plus a `.http` file for every endpoint.
 - [ ] 13. Hardening review: findings by severity, high and medium fixed one commit at a time.
 - [ ] 14. Coverage: JaCoCo, tests for the most important untested paths, a summary in CI output.
-- [ ] 15. Containerize: multi-stage Dockerfile with a non-root user, one command starts app, Postgres, Keycloak, Prometheus and Grafana.
+- [x] 15. Containerize (Dockerfile, .dockerignore, compose.yaml, stable Keycloak user ids, DECISIONS 21; `./mvnw clean verify` passes, 293 tests; Prometheus and Grafana join the stack in milestone 11): multi-stage Dockerfile with a non-root user, one command starts app, Postgres and Keycloak.
 - [ ] 16. README and final clone-and-run audit.
 
 ## Dependencies to ask about before adding

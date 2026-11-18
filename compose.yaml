@@ -1,5 +1,12 @@
-# Local development dependencies only. The app runs on the host (`./mvnw spring-boot:run`).
-# The defaults below are local-dev values; override them with environment variables or a git-ignored .env file.
+# One command starts the whole stack: `docker compose up --build` (app, Postgres, Keycloak).
+# Only the dependencies: `docker compose up -d postgres keycloak` (then run the app on the host with ./mvnw spring-boot:run).
+#
+# LOCAL DEVELOPMENT VALUES ONLY. Every default below (passwords, the Keycloak admin login, the dev realm users,
+# plain http) is for a laptop. Override with environment variables or a git-ignored .env file; never reuse them anywhere real.
+#
+# Reset to an empty database (also removes the named volume payments-ledger_pgdata): `docker compose down -v`
+name: payments-ledger
+
 services:
   postgres:
     image: postgres:17.11
@@ -7,8 +14,8 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_DB: ledger
-      POSTGRES_USER: ${DB_USERNAME:-ledger}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-ledger}
+      POSTGRES_USER: ${DB_USERNAME:-ledger}              # local-dev value
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ledger}          # local-dev value
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -26,9 +33,52 @@ services:
     volumes:
       - ./keycloak/ledger-realm.json:/opt/keycloak/data/import/ledger-realm.json:ro
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}                  # local-dev value
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}         # local-dev value
       KC_HEALTH_ENABLED: "true"
+      # Fixes the issuer in every token to http://localhost:8081/realms/ledger, whichever address the caller used
+      # (browser, curl on the host, or the app container via http://keycloak:8080). See docs/DECISIONS.md 21.
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}
+    healthcheck:
+      # The Keycloak image has no curl, so speak HTTP to the management port (9000) with bash's /dev/tcp.
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"status": "UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    mem_limit: 1g    # the JVM heap is 75% of this (see the Dockerfile)
+    environment:
+      # Database: by compose service name, with the same local-dev credentials Postgres is created with.
+      DB_URL: jdbc:postgresql://postgres:5432/ledger
+      DB_USERNAME: ${DB_USERNAME:-ledger}                # local-dev value
+      DB_PASSWORD: ${DB_PASSWORD:-ledger}                # local-dev value
+      # Tokens carry the public issuer (see KC_HOSTNAME above), so that is what the app validates `iss` against.
+      JWT_ISSUER_URI: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}/realms/ledger
+      # Signing keys are fetched over the compose network. With a JWK Set URI, Spring does not call the issuer
+      # URI for discovery, which would fail inside the container (localhost is the container itself).
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ledger/protocol/openid-connect/certs
+    healthcheck:
+      # The runtime image is Alpine, so BusyBox wget is available (no curl).
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
 
 volumes:
   pgdata:

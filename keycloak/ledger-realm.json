@@ -26,6 +26,7 @@
   ],
   "users": [
     {
+      "id": "alice",
       "username": "alice",
       "email": "alice@example.com",
       "firstName": "Alice",
@@ -36,6 +37,7 @@
       "realmRoles": ["USER"]
     },
     {
+      "id": "bob",
       "username": "bob",
       "email": "bob@example.com",
       "firstName": "Bob",
@@ -46,6 +48,7 @@
       "realmRoles": ["USER"]
     },
     {
+      "id": "admin-user",
       "username": "admin-user",
       "email": "admin-user@example.com",
       "firstName": "Ada",

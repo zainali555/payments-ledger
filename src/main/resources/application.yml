@@ -38,7 +38,7 @@ management:
         enabled: true
 
 ---
-# Local development: app on the host, dependencies from `docker compose up -d`.
+# Local development: app on the host, dependencies from `docker compose up -d postgres keycloak`.
 # Personal overrides go in application-local.yml, which is git-ignored.
 spring:
   config:

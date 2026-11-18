@@ -4,6 +4,30 @@ A double-entry payments ledger built with Java 21 and Spring Boot 4.
 
 Status: work in progress. Full documentation will be added at the end of the project.
 
+## Run it with one command
+Needs Docker (Docker Desktop on Windows and macOS). From a fresh clone:
+
+```
+docker compose up --build
+```
+
+This builds the app image and starts the app (<http://localhost:8080>), Keycloak (<http://localhost:8081>) and Postgres (port 5432), in that dependency order: the app waits until Postgres and Keycloak are healthy. The first run downloads images and Maven dependencies, so it takes a few minutes.
+
+```
+curl http://localhost:8080/actuator/health
+
+TOKEN=$(curl -s -d grant_type=password -d client_id=ledger-api -d username=alice -d password=alice-dev-password \
+  http://localhost:8081/realms/ledger/protocol/openid-connect/token | sed 's/.*"access_token":"\([^"]*\)".*/\1/')
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/accounts
+```
+
+Dev users (all local-dev values, see `keycloak/ledger-realm.json`): `alice` and `bob` (USER, passwords `alice-dev-password` and `bob-dev-password`) and `admin-user` (ADMIN, `admin-dev-password`). Their ids are fixed, so the token `sub` is the same every time Keycloak is recreated (DECISIONS 21).
+
+- Stop, keeping the data: `docker compose down`.
+- **Reset to an empty database:** `docker compose down -v` (also deletes the `payments-ledger_pgdata` volume), then `docker compose up --build` again.
+- Only the dependencies, to run the app on the host with `./mvnw spring-boot:run`: `docker compose up -d postgres keycloak`. A bare `docker compose up` also starts the app, on port 8080, so use this form when you run the app yourself.
+- Defaults in `compose.yaml` (database password, Keycloak admin login) are for local development only; override them with environment variables or a git-ignored `.env`. Tokens fetched at `localhost:8081` are accepted by the app in the container because Keycloak's hostname is fixed to that address (DECISIONS 21).
+
 ## API (so far)
 All endpoints except `GET /actuator/health` need a Keycloak bearer token with the `USER` or `ADMIN` realm role.
 

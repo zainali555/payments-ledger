@@ -3,7 +3,7 @@
 ### {{name.response.body.x}} references with variables set in a response handler, for example:
 ###   > {% client.global.set("aliceToken", response.body.access_token); %}
 ###
-### Start the dependencies first: `docker compose up -d`, then `./mvnw spring-boot:run`.
+### Start the dependencies first: `docker compose up -d postgres keycloak`, then `./mvnw spring-boot:run`.
 ### Run the requests top to bottom: later ones use ids and tokens captured from earlier ones.
 ### The interactive docs are at http://localhost:8080/swagger-ui.html (click Authorize and paste a token).
 
